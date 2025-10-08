@@ -1,9 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const sequelize = require("./db");
-require("./jobs/postJob");
+const { runLiverpoolJob } = require("./jobs/postJob");
+const cacheRoutes = require("./routes/cacheRoutes");
 
 const app = express();
+
+app.use("/api/cache", cacheRoutes);
 
 sequelize
   .authenticate()
@@ -16,4 +19,10 @@ sequelize
 
 const PORT = process.env.PORT || 7000;
 
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`Server running on ${PORT}`);
+
+  await runLiverpoolJob();
+
+  process.exit(0);
+});

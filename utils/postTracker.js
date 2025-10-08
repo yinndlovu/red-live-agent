@@ -1,21 +1,61 @@
-const fs = require("fs");
-const path = require("path");
+const { PostedEvent } = require("../models");
 
-const dataPath = path.join(__dirname, "../data/postedEvents.json");
+async function isEventPosted(matchId, eventType) {
+  try {
+    const event = await PostedEvent.findOne({
+      where: {
+        matchId,
+        eventType,
+      },
+    });
+    return !!event;
+  } catch (error) {
+    console.error("Error checking if event is posted:", error);
+    return false;
+  }
+}
 
-function readPostedEvents() {
-  if (!fs.existsSync(dataPath)) {
+async function savePostedEvent(matchId, eventType, eventData = null) {
+  try {
+    const [event, created] = await PostedEvent.findOrCreate({
+      where: {
+        matchId,
+        eventType,
+      },
+      defaults: {
+        eventData,
+        postedAt: new Date(),
+      },
+    });
+
+    if (created) {
+      console.log(`Event ${eventType} for match ${matchId} saved successfully`);
+      return true;
+    } else {
+      console.log(`Event ${eventType} for match ${matchId} already exists`);
+      return false;
+    }
+  } catch (error) {
+    console.error("Error saving posted event:", error);
+    return false;
+  }
+}
+
+async function getPostedEvents(matchId) {
+  try {
+    const events = await PostedEvent.findAll({
+      where: { matchId },
+      order: [["postedAt", "ASC"]],
+    });
+    return events;
+  } catch (error) {
+    console.error("Error getting posted events:", error);
     return [];
   }
-  
-  const raw = fs.readFileSync(dataPath);
-  return JSON.parse(raw);
 }
 
-function savePostedEvent(eventId) {
-  const events = readPostedEvents();
-  events.push(eventId);
-  fs.writeFileSync(dataPath, JSON.stringify(events, null, 2));
-}
-
-module.exports = { readPostedEvents, savePostedEvent };
+module.exports = {
+  isEventPosted,
+  savePostedEvent,
+  getPostedEvents,
+};
